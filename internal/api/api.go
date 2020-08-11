@@ -11,7 +11,7 @@ func Run(addr string) error {
 	r.GET("/storage/*path", GetFile)
 	r.GET("/api/list_file", ListFile)
 
-	return r.Run()
+	return r.Run(addr)
 }
 
 func resp(c *gin.Context, respStatus int, msg string, payload interface{}) {
