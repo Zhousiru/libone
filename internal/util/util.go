@@ -30,5 +30,10 @@ func IsFolder(path string) bool {
 
 // GetAbsPath returns the absolute path.
 func GetAbsPath(path string) string {
-	return filepath.Join(viper.GetString("data-path"), path)
+	absPath, err := filepath.Abs(filepath.Join(viper.GetString("data-path"), path))
+	if err != nil {
+		panic(err)
+	}
+
+	return absPath
 }

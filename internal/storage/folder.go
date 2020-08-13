@@ -1,10 +1,11 @@
 package storage
 
 import (
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Zhousiru/libone/internal/util"
 	"github.com/fsnotify/fsnotify"
@@ -16,42 +17,55 @@ import (
 func NewFolder(path string) (*Folder, error) {
 	f := new(Folder)
 
-	f.path = path
-	f.absPath = util.GetAbsPath(f.path)
+	f.absPath = util.GetAbsPath(path)
+
+	absDataPath, err := filepath.Abs(viper.GetString("data-path"))
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(f.absPath, absDataPath) {
+		return nil, errors.New("the specified path is forbidden")
+	}
+
+	f.path, err = filepath.Rel(absDataPath, f.absPath)
+	if err != nil {
+		return nil, err
+	}
 	if !util.PathExist(f.absPath) {
 		os.MkdirAll(f.absPath, os.FileMode(0666))
 	}
 
-	f.base = filepath.Base(f.path)
+	f.base = filepath.Base(f.absPath)
 
-	f.absParentFolder = filepath.Dir(f.absPath)
-	f.absParentPropPath = filepath.Join(f.absParentFolder, ".lo")
+	if f.absPath != absDataPath {
+		f.absParentFolder = filepath.Dir(f.absPath)
+		f.absParentPropPath = filepath.Join(f.absParentFolder, ".lo")
 
-	if !util.PathExist(f.absParentPropPath) {
-		os.MkdirAll(f.absParentPropPath, os.FileMode(0666))
-	}
-
-	prop := viper.New()
-	prop.SetConfigType("yaml")
-	prop.AddConfigPath(f.absParentPropPath)
-	prop.SetConfigName(f.base)
-	prop.ReadInConfig()
-
-	absSelfPropPath := filepath.Join(f.absParentPropPath, f.base+".yaml")
-	if !util.PathExist(absSelfPropPath) {
-		f, err := os.Create(absSelfPropPath)
-		if err != nil {
-			return nil, err
+		if !util.PathExist(f.absParentPropPath) {
+			os.MkdirAll(f.absParentPropPath, os.FileMode(0666))
 		}
-		defer f.Close()
-	}
 
-	prop.WatchConfig()
-	prop.OnConfigChange(func(e fsnotify.Event) {
-		f.Prop.ReadInConfig()
-		fmt.Println("called")
-	})
-	f.Prop = prop
+		prop := viper.New()
+		prop.SetConfigType("yaml")
+		prop.AddConfigPath(f.absParentPropPath)
+		prop.SetConfigName(f.base)
+		prop.ReadInConfig()
+
+		absSelfPropPath := filepath.Join(f.absParentPropPath, f.base+".yaml")
+		if !util.PathExist(absSelfPropPath) {
+			f, err := os.Create(absSelfPropPath)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+		}
+
+		prop.WatchConfig()
+		prop.OnConfigChange(func(e fsnotify.Event) {
+			f.Prop.ReadInConfig()
+		})
+		f.Prop = prop
+	}
 
 	return f, nil
 }
