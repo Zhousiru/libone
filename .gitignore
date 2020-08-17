@@ -11,5 +11,11 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Debug binary
+__debug_bin
+
 # Configs
 config.yaml
+
+# Example data-path
+data
