@@ -13,33 +13,31 @@ import (
 )
 
 // NewFolder create a Folder structure by path.
-// If the path doesn't exist, NewFolder will create it.
 func NewFolder(path string) (*Folder, error) {
 	f := new(Folder)
 
 	f.absPath = util.GetAbsPath(path)
+	f.path = filepath.ToSlash(path)
 
-	absDataPath, err := filepath.Abs(viper.GetString("data-path"))
+	rawAbsDataPath, err := filepath.Abs(viper.GetString("data-path"))
 	if err != nil {
 		return nil, err
 	}
+
+	absDataPath := filepath.ToSlash(rawAbsDataPath)
 	if !strings.HasPrefix(f.absPath, absDataPath) {
 		return nil, errors.New("the specified path is forbidden")
 	}
 
-	f.path, err = filepath.Rel(absDataPath, f.absPath)
-	if err != nil {
-		return nil, err
-	}
 	if !util.PathExist(f.absPath) {
-		os.MkdirAll(f.absPath, os.FileMode(0666))
+		return nil, errors.New("the specified path does not exist")
 	}
 
 	f.base = filepath.Base(f.absPath)
+	f.absParentFolder = filepath.ToSlash(filepath.Dir(f.absPath))
 
-	if f.absPath != absDataPath {
-		f.absParentFolder = filepath.Dir(f.absPath)
-		f.absParentPropPath = filepath.Join(f.absParentFolder, ".lo")
+	if !(f.absPath == absDataPath || f.base == ".lo") {
+		f.absParentPropPath = filepath.ToSlash(filepath.Join(f.absParentFolder, ".lo"))
 
 		if !util.PathExist(f.absParentPropPath) {
 			os.MkdirAll(f.absParentPropPath, os.FileMode(0666))
@@ -51,7 +49,7 @@ func NewFolder(path string) (*Folder, error) {
 		prop.SetConfigName(f.base)
 		prop.ReadInConfig()
 
-		absSelfPropPath := filepath.Join(f.absParentPropPath, f.base+".yaml")
+		absSelfPropPath := filepath.ToSlash(filepath.Join(f.absParentPropPath, f.base+".yaml"))
 		if !util.PathExist(absSelfPropPath) {
 			f, err := os.Create(absSelfPropPath)
 			if err != nil {
@@ -82,7 +80,7 @@ func (f *Folder) List() ([]ListItem, error) {
 	for _, fi := range fis {
 		item := ListItem{}
 		item.Filename = fi.Name()
-		item.Path = filepath.Join(f.path, fi.Name())
+		item.Path = filepath.ToSlash(filepath.Join(f.path, fi.Name()))
 		if fi.IsDir() {
 			item.FileType = TypeFolder
 		} else {

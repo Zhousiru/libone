@@ -35,5 +35,5 @@ func GetAbsPath(path string) string {
 		panic(err)
 	}
 
-	return absPath
+	return filepath.ToSlash(absPath)
 }

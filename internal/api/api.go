@@ -1,12 +1,14 @@
 package api
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 // Run runs the API service.
 func Run(addr string) error {
 	r := gin.Default()
+	r.Use(cors.Default())
 
 	r.GET("/storage/*path", GetFile)
 	r.GET("/api/list_file", ListFile)
