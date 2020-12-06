@@ -12,6 +12,7 @@ func Run(addr string) error {
 
 	r.GET("/storage/*path", GetFile)
 	r.GET("/api/list_file", ListFile)
+	r.GET("/api/update_file", UpdateFile)
 
 	return r.Run(addr)
 }
