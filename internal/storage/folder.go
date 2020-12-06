@@ -92,3 +92,15 @@ func (f *Folder) List() ([]ListItem, error) {
 
 	return list, nil
 }
+
+// WriteFile writes data to the specified file.
+func (f *Folder) WriteFile(filename string, data []byte) error {
+	absFilePath := filepath.Join(f.absPath, filename)
+	err := ioutil.WriteFile(absFilePath, data, os.FileMode(0666))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
